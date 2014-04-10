@@ -1,0 +1,14 @@
+doctype html
+html
+  head
+    title= title
+    link(rel='stylesheet', href='/stylesheets/style.css')
+    link(rel='stylesheet', href='/stylesheets/chat.css')
+
+    script(src="/socket.io/socket.io.js")
+    script(src="/javascripts/jquery/jquery-1.7.2.min.js")
+    script(src="/javascripts/chat.js")
+    script(src="/javascripts/chatRoom.js")
+
+  body
+    block content

@@ -1,0 +1,67 @@
+
+#roomWindow {
+	width: 150px;
+	height: 350px;
+	float: left;
+	margin-right: 100px;
+}
+#userWindow {
+	width: 150px;
+	height: 350px;
+	float: left;
+}
+#msgWindow {
+	white-space: pre;
+	overflow-y: auto;
+	overflow-x: none;
+	width: 550px;
+	height: 350px;
+}
+.roomShadow {
+	box-shadow: 2px 2px 4px 1px #000000;
+	border: 1px solid #000000;
+	border-right: 0;
+	padding-top: 10px;
+	padding-right: 1px;
+	padding-bottom: 10px;
+	padding-left: 15px;
+}
+.userShadow {
+	box-shadow: 2px 2px 4px 1px #000000;
+	border: 1px solid #000000;
+	border-right: 0;
+	padding-top: 10px;
+	padding-right: 1px;
+	padding-bottom: 10px;
+	padding-left: 15px;
+}
+.shadow {
+	box-shadow: 2px 2px 4px 1px #000000;
+	border: 1px solid #000000;
+	border-right: 0;
+	padding-top: 10px;
+	padding-right: 1px;
+	padding-bottom: 10px;
+	padding-left: 15px;
+}
+.allMsg {
+}
+.privMsg {
+	font-style:italic;
+}
+
+.adminMsg {
+	font-face: "verdana, helvetica";
+	font-size: 8;
+}
+#messageControl {
+	margin-left: 265px;
+}
+
+.room{
+	text-decoration: none;
+}
+.user{
+	text-decoration: none;	
+	cursor: default;
+}
