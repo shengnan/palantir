@@ -36,19 +36,25 @@ function appendNewUser(uName, notify) {
 	})
 }
 
-function appendNewRoom(rName, socketId, rType) {
+function appendNewRoom(rName, rId, rType) {
 	if (typeof(rType) === 'undefined') {
 		rType = 'public';
 	}
 	var html = '<div class="room">' +
-				'<input type="hidden" socket="' + socketId + '" roomType="' + rType + '" >' +
+				'<input type="hidden" socket="' + rId + '" roomType="' + rType + '" >' +
 				'<span class="name">' + rName + '</span>' +
 				'</div>';
 	$('#roomWindow').append(html);
-	$('span.name').click(function(e) {
+	$(".name").click(function(e){
+		e.stopPropagation();
+		
 		var joiner = $('#userName').val();
+		var destRId = $(this).prev().attr('socket');
+		console.log($(this));
 		changeRoomName(rName);
-		socket.emit('joinRoom', joiner, socketId);
+		socket.emit('joinRoom', joiner, destRId);
+		
+	    e.stopImmediatePropagation()
 	});
 }
 
@@ -128,11 +134,12 @@ function createRoom(roomName, roomType) {
 	}
 }
 
-function changeRoomName(roomName) {alert(roomName);
+function changeRoomName(roomName) {
+	// alert(roomName);
 	$('#curRoom').text(roomName);
 }
 
-socket = io.connect("http://10.120.100.71:3000");
+socket = io.connect("http://localhost:3000");
 
 $(function() {
 	enableMsgInput(false);
@@ -143,17 +150,19 @@ $(function() {
 	});
 
 	socket.on('initRoomList', function(rsList, tpsOfRoom) {
-		var lobby;
+		var rId;
 		$('#roomWindow').text('');
 		for (var room in rsList) {
 			if (room != '' && room != null) {
-				var roomName = room.substring(1);console.log(roomName + ' kkkkkkk ' + JSON.stringify(rsList) + JSON.stringify(rsList[room]));
+				var roomName = room.substring(1);
+				// console.log(roomName + ' kkkkkkk ' + JSON.stringify(rsList) + JSON.stringify(rsList[room]));
 				var arrStr = JSON.stringify(rsList[room]);
 				JSON.parse(arrStr).forEach(function(arr) {
-					lobby = arr;
+					rId = arr+'_'+roomName;
 					return;
 				});
-				appendNewRoom(roomName, lobby, tpsOfRoom[roomName]);
+
+				appendNewRoom(roomName, rId, tpsOfRoom[roomName]);
 			}
 		}
 	});
