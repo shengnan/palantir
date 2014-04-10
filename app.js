@@ -50,6 +50,9 @@ io.sockets.on('connection', function(socket) {
 			clients[userName] = socket.id;
 			socketsOfClients[socket.id] = userName;
 
+			rooms[socket.id+'_'+'lobby'] = 'lobby';
+			typesOfRooms['lobby'] = 'public';
+
 			// store the username in the socket session for this client
 			socket.username = userName;
 			// store the room name in the socket session for this client
@@ -69,37 +72,7 @@ io.sockets.on('connection', function(socket) {
 			userNameAlreadyInUse(socket.id, userName);
 		}
 	});
-console.log('=========='+ JSON.stringify(clients));
-console.log('???????????'+ JSON.stringify(rooms));
-	socket.on('joinRoom', function(joiner, socketId) {
-		var clientsList = {};
-		var oldClientsList = {};
-		var newClientsList = {};
-		socket.leave(socket.room);
-		socket.join(rooms[socketId]);
 
-		var clients = io.sockets.clients(rooms[socketId]);
-		clients.forEach(function(client) {
-			clientsList[client.id] = client.username;
-		});
-		socket.emit('switchRoom', rooms[socketId], clientsList);
-
-		var old_room_clients = io.sockets.clients(socket.room);
-		old_room_clients.forEach(function(old_room_client) {
-			oldClientsList[old_room_client.id] = old_room_client.username;
-		});
-		socket.broadcast.to(socket.room).emit('switchRoomBroadcast', joiner, 'left', oldClientsList);
-
-		socket.room = rooms[socketId];
-		var new_room_clients = io.sockets.clients(socket.room);
-		new_room_clients.forEach(function(new_room_client) {
-			newClientsList[new_room_client.id] = new_room_client.username;
-		});
-		socket.broadcast.to(socket.room).emit('switchRoomBroadcast', joiner, 'joined', newClientsList);
-
-		//io.sockets.emit('roomListUpdateBroadcast', socket.room, socketId);
-		io.sockets.emit('initRoomList', io.sockets.manager.rooms, typesOfRooms);
-	});
 
 	socket.on('createRoom', function(msg) {
 		var user;
@@ -116,14 +89,13 @@ console.log('???????????'+ JSON.stringify(rooms));
 		} else {
 			// user = msg.source;
 		}
-
-		rooms[socket.id] = roomName;
+		rooms[socket.id+'_'+roomName] = roomName;
 		typesOfRooms[roomName] = roomType;
 
 		socket.leave(socket.room);
 
 		socket.join(roomName);
-console.log('create room' + JSON.stringify(io.sockets.manager.rooms));
+
 		//update own status, clear chat area, update own client list
 		var clients = io.sockets.clients(roomName);
 		clients.forEach(function(client) {
@@ -147,10 +119,47 @@ console.log('create room' + JSON.stringify(io.sockets.manager.rooms));
 		socket.broadcast.to(roomName).emit('switchRoomBroadcast', user, 'joined', newClientsList);
 
 		//update all clients' roomList including sender
-		io.sockets.emit('roomListUpdateBroadcast', roomName, socket.id, roomType);
+		io.sockets.emit('initRoomList', io.sockets.manager.rooms, typesOfRooms);
 
 		// console.log(io.sockets.manager.rooms);
 	});
+
+
+
+
+// console.log('=========='+ JSON.stringify(clients));
+// console.log('???????????'+ JSON.stringify(rooms));
+	socket.on('joinRoom', function(joiner, rId) {
+		var clientsList = {};
+		var oldClientsList = {};
+		var newClientsList = {};
+
+		socket.leave(socket.room);
+		socket.join(rooms[rId]);
+
+		var clients = io.sockets.clients(rooms[rId]);
+		clients.forEach(function(client) {
+			clientsList[client.id] = client.username;
+		});
+		socket.emit('switchRoom', rooms[rId], clientsList);
+
+		var old_room_clients = io.sockets.clients(socket.room);
+		old_room_clients.forEach(function(old_room_client) {
+			oldClientsList[old_room_client.id] = old_room_client.username;
+		});
+		socket.broadcast.to(socket.room).emit('switchRoomBroadcast', joiner, 'left', oldClientsList);
+
+		socket.room = rooms[rId];
+		var new_room_clients = io.sockets.clients(socket.room);
+		new_room_clients.forEach(function(new_room_client) {
+			newClientsList[new_room_client.id] = new_room_client.username;
+		});
+		socket.broadcast.to(socket.room).emit('switchRoomBroadcast', joiner, 'joined', newClientsList);
+
+		//io.sockets.emit('roomListUpdateBroadcast', socket.room, rId);
+		io.sockets.emit('initRoomList', io.sockets.manager.rooms, typesOfRooms);
+	});
+
 
 	socket.on('message', function(msg) {
 		var srcUser;
