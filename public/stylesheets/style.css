@@ -8,9 +8,24 @@ a {
   color: #00B7FF;
 }
 
+.accept {
+	cursor: pointer;
+}
+
+.locked {
+}
+
+.busy {
+	cursor: pointer;
+}
+
+.close {
+	cursor: pointer;
+	float: right;
+}
+
 .room {}
 
 .name {
-	cursor: pointer;
 	color: #00B7FF;
 }
