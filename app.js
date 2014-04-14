@@ -28,16 +28,15 @@ if ('development' == app.get('env')) {
 }
 
 app.get('/', routes.index);
-app.get('/chat', chat.main);
+app.get('/single_chat', chat.main);
 app.get('/users', user.list);
 
-var server = app.listen(app.get('port'), function(){
-  console.log("Express server listening on port " + app.get('port'));
+var server = app.listen(app.get('port'), function() {
+	console.log("Express server listening on port " + app.get('port'));
 });
 var io = socketio.listen(server, {log: false}); //reduce log
 
 var rooms = {};
-var typesOfRooms = {};
 
 var clients = {};
 var socketsOfClients = {};
@@ -50,8 +49,7 @@ io.sockets.on('connection', function(socket) {
 			clients[userName] = socket.id;
 			socketsOfClients[socket.id] = userName;
 
-			rooms[socket.id+'_'+'lobby'] = 'lobby';
-			typesOfRooms['lobby'] = 'public';
+			rooms['lobby'] = 'lobby';
 
 			// store the username in the socket session for this client
 			socket.username = userName;
@@ -65,7 +63,7 @@ io.sockets.on('connection', function(socket) {
 			socket.broadcast.to('lobby').emit('lobbyBroadcast', userName);
 			userNameAvailable(socket.id, userName);
 			userJoined(userName);
-			socket.emit('initRoomList', io.sockets.manager.rooms, typesOfRooms);
+			socket.emit('initRoomList', io.sockets.manager.rooms);
 		} else if (clients[userName] === socket.id) {
 			// Ignore for now
 		} else {
@@ -80,7 +78,6 @@ io.sockets.on('connection', function(socket) {
 		var oldClientsList = {};
 		var newClientsList = {};
 		var roomName = msg.roomName;
-		var roomType = msg.roomType;
 
 		if (msg.inferSrcUser) {
 			// user name based on the socket id
@@ -89,8 +86,7 @@ io.sockets.on('connection', function(socket) {
 		} else {
 			// user = msg.source;
 		}
-		rooms[socket.id+'_'+roomName] = roomName;
-		typesOfRooms[roomName] = roomType;
+		rooms[roomName] = roomName;
 
 		socket.leave(socket.room);
 
@@ -119,16 +115,11 @@ io.sockets.on('connection', function(socket) {
 		socket.broadcast.to(roomName).emit('switchRoomBroadcast', user, 'joined', newClientsList);
 
 		//update all clients' roomList including sender
-		io.sockets.emit('initRoomList', io.sockets.manager.rooms, typesOfRooms);
+		io.sockets.emit('initRoomList', io.sockets.manager.rooms);
 
 		// console.log(io.sockets.manager.rooms);
 	});
 
-
-
-
-// console.log('=========='+ JSON.stringify(clients));
-// console.log('???????????'+ JSON.stringify(rooms));
 	socket.on('joinRoom', function(joiner, rId) {
 		var clientsList = {};
 		var oldClientsList = {};
@@ -157,9 +148,12 @@ io.sockets.on('connection', function(socket) {
 		socket.broadcast.to(socket.room).emit('switchRoomBroadcast', joiner, 'joined', newClientsList);
 
 		//io.sockets.emit('roomListUpdateBroadcast', socket.room, rId);
-		io.sockets.emit('initRoomList', io.sockets.manager.rooms, typesOfRooms);
+		io.sockets.emit('initRoomList', io.sockets.manager.rooms);
 	});
 
+	socket.on('joinLobby', function(joiner) {
+		joinLobby(socket, joiner);
+	});
 
 	socket.on('message', function(msg) {
 		var srcUser;
@@ -186,17 +180,20 @@ io.sockets.on('connection', function(socket) {
 										"target": target
 								});
 		}
-	})
+	});
 
-	socket.on('disconnect', function() {
+	socket.on('current room list', function() {
+		socket.emit('return room list', JSON.stringify(Object.keys(io.sockets.manager.rooms)));
+	});
+
+	socket.on('exit', function(curRoom) {
 		var uName = socketsOfClients[socket.id];
+
+		delete rooms[curRoom];
 		delete socketsOfClients[socket.id];
 		delete clients[uName];
-
-		// relay this message to all the clients
-
-		 userLeft(uName);
-	})
+		closeRoom(socket, curRoom);
+	});
 })
 
 function userJoined(uName) {
@@ -211,8 +208,11 @@ function userJoined(uName) {
 }
 
 
-function userLeft(uName) {
-	io.sockets.emit('userLeft', { "userName": uName });
+function closeRoom(socket, curRoom) {
+	// sending to all clients except sender
+	socket.broadcast.emit('roomClosed', curRoom);
+
+	// io.sockets.emit('userLeft', { "userName": uName });
 }
 
 function userNameAvailable(sId, uName) {
@@ -224,15 +224,29 @@ function userNameAvailable(sId, uName) {
 	io.sockets.sockets[sId].emit('welcome', { "userName": uName, "currentUsers": JSON.stringify(Object.keys(clientsList))});
 }
 
-// function roomNameAvailable(sId, roomName) {
-//  setTime(function() {
-//    console.log('Room created' + roomName + ' at ' + sId);
-//    io.sockets.sockets[sId].emit('room welcome', {"roomName" : roomName, "currentRooms": JSON.stringify(Object.keys(rooms)) });
-//  }, 500);
-// }
-
 function userNameAlreadyInUse(sId, uName) {
 	setTimeout(function() {
 		io.sockets.sockets[sId].emit('error', { "userNameInUse" : true });
 	}, 500);
+}
+
+function joinLobby(socket, userName) {
+	var clientsList = {};
+	rooms['lobby'] = 'lobby';
+
+	socket.join('lobby');
+	socket.leave(socket.room);
+
+	// store the room name in the socket session for this client
+	socket.room = 'lobby';
+
+	var clients = io.sockets.clients('lobby');
+	clients.forEach(function(client) {
+		clientsList[client.id] = client.username;
+	});
+	socket.emit('switchRoom', 'lobby', clientsList);
+
+	//broadcast lobby except sender
+	socket.broadcast.to('lobby').emit('lobbyBroadcast', userName);
+	socket.emit('initRoomList', io.sockets.manager.rooms);
 }
