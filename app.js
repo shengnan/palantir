@@ -100,18 +100,12 @@ io.sockets.on('connection', function(socket) {
 		socket.emit('switchRoom', roomName, clientsList);
 
 		//say goodbye to the old room, update old room client list
-		var old_room_clients = io.sockets.clients(socket.room);
-		old_room_clients.forEach(function(old_room_client) {
-			oldClientsList[old_room_client.id] = old_room_client.username;
-		});
+		oldClientsList = getClientsListInRoom(socket.room);
 		socket.broadcast.to(socket.room).emit('switchRoomBroadcast', user, 'left', oldClientsList);
 
 		//say hello to the new room, update new room client list
 		socket.room = roomName;
-		var new_room_clients = io.sockets.clients(socket.room);
-		new_room_clients.forEach(function(new_room_client) {
-			newClientsList[new_room_client.id] = new_room_client.username;
-		});
+		newClientsList = getClientsListInRoom(socket.room);
 		socket.broadcast.to(roomName).emit('switchRoomBroadcast', user, 'joined', newClientsList);
 
 		//update all clients' roomList including sender
@@ -134,17 +128,11 @@ io.sockets.on('connection', function(socket) {
 		});
 		socket.emit('switchRoom', rooms[rId], clientsList);
 
-		var old_room_clients = io.sockets.clients(socket.room);
-		old_room_clients.forEach(function(old_room_client) {
-			oldClientsList[old_room_client.id] = old_room_client.username;
-		});
+		oldClientsList = getClientsListInRoom(socket.room);
 		socket.broadcast.to(socket.room).emit('switchRoomBroadcast', joiner, 'left', oldClientsList);
 
 		socket.room = rooms[rId];
-		var new_room_clients = io.sockets.clients(socket.room);
-		new_room_clients.forEach(function(new_room_client) {
-			newClientsList[new_room_client.id] = new_room_client.username;
-		});
+		newClientsList = getClientsListInRoom(socket.room);
 		socket.broadcast.to(socket.room).emit('switchRoomBroadcast', joiner, 'joined', newClientsList);
 
 		//io.sockets.emit('roomListUpdateBroadcast', socket.room, rId);
@@ -189,9 +177,9 @@ io.sockets.on('connection', function(socket) {
 	socket.on('exit', function(curRoom) {
 		var uName = socketsOfClients[socket.id];
 
-		delete rooms[curRoom];
 		delete socketsOfClients[socket.id];
 		delete clients[uName];
+		socket.leave(curRoom);
 		closeRoom(socket, curRoom);
 	});
 })
@@ -209,10 +197,9 @@ function userJoined(uName) {
 
 
 function closeRoom(socket, curRoom) {
-	// sending to all clients except sender
+	// sending to all current clients except sender
 	socket.broadcast.emit('roomClosed', curRoom);
 
-	// io.sockets.emit('userLeft', { "userName": uName });
 }
 
 function userNameAvailable(sId, uName) {
@@ -222,6 +209,15 @@ function userNameAvailable(sId, uName) {
 		clientsList[lobby_client.username] = lobby_client.id;
 	});
 	io.sockets.sockets[sId].emit('welcome', { "userName": uName, "currentUsers": JSON.stringify(Object.keys(clientsList))});
+}
+
+function getClientsListInRoom(roomId) {
+	var clientsInRoom = {};
+	var room_clients = io.sockets.clients(roomId);
+	room_clients.forEach(function(room_client) {
+		clientsInRoom[room_client.id] = room_client.username;
+	});
+	return clientsInRoom;
 }
 
 function userNameAlreadyInUse(sId, uName) {
