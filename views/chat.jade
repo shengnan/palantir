@@ -3,23 +3,25 @@ extends layout
 block content
   h1#curRoom Where am I going?
   button#createRoom(type="submit", disabled="true") Create Room
-  
+
   select#roomType(hidden="true")
     option public
     option private
 
   input#roomName(type="text", style="width: 100px", hidden="true", placeholder="Enter Room Name Here...")
 
+  p
+  button#backToLobby(type="submit") Back To Lobby
+
   div#close.close Close
-  
-  p 
-  label(for="userName") User name: (Hit Enter) 
+
+  p
+  label(for="userName" id="userNameLabel") User name: (Hit Enter)
   input#userName(type="text", size="30")
   span#feedback
 
   p
   div#roomWindow.roomShadow
-  div#userWindow.userShadow
   div#msgWindow.shadow
 
   p

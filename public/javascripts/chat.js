@@ -48,7 +48,7 @@ function appendNewRoom(rName, rId, numOfCls) {
 	}
 
 	if (numOfCls == 2) {
-		room_label = 'Locked';		
+		room_label = 'Locked';
 	}
 
 	var html = '<div class="room" id="' + show_rName + '">' +
@@ -70,7 +70,6 @@ function appendNewRoom(rName, rId, numOfCls) {
 }
 
 function handleRoomClosed(rName) {
-	// $("#userWindow option[value='" + msg.userName + "']").remove();
 	var arr = rName.split("_");
 	var show_rName = arr[1];
 	$( ".room" ).remove( "#" + show_rName + "" );
@@ -148,7 +147,6 @@ function createRoom(roomName, roomType) {
 				{
 					"inferSrcUser": true,
 					"roomName": roomName,
-					"roomType": roomType
 				});
 	}
 }
@@ -174,7 +172,7 @@ function disableAllForRequester(disable) {
 		$('button#createRoom').css('display', 'none');
 		$('#userName').css('display', 'none');
 		$('#roomWindow').css('display', 'none');
-		$('#curRoom').css('display', 'none');
+		$('#curRoom').hide();
 		$('#userNameLabel').css('display', 'none');
 		$('#backToLobby').css('display', 'none');
 	}
@@ -189,7 +187,7 @@ function hideBackButtonForLobby() {
 	}
 }
 
-socket = io.connect("http://localhost:3000");
+socket = io.connect("http://10.120.100.71:3000");
 
 $(function() {
 
@@ -206,6 +204,7 @@ $(function() {
 			"inferSrcUser": true,
 			"roomName": roomName,
 		});
+		changeRoomName(roomName);
 		socket.on('message', function(msg) {
 			appendNewMessage(msg);
 		});
@@ -223,8 +222,17 @@ $(function() {
 				sendMessage(roomName);
 			}
 		});
+
+		$('#close').click(function(e) {
+			var curRoom = $('#curRoom').text().toLowerCase();
+			socket.emit('exit', curRoom);
+			
+			// close current window
+		});
+
 	} else {
 		enableMsgInput(false);
+		$('#close').css('display', 'none');
 
 		socket.on('lobbyBroadcast', function(uName) {
 			var msg = 'Attention everyone, '+uName+' is onboard!';
@@ -364,11 +372,11 @@ $(function() {
 			});
 		});
 
-		$('#close').click(function(e) {
+		/*$('#close').click(function(e) {
 			var curRoom = $('#curRoom').text().toLowerCase();
 			socket.emit('exit', curRoom);
 
 			// close current window
-		});
+		});*/
 	}
 });
