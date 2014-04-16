@@ -3,6 +3,7 @@ var routes = require('./routes');
 var user = require('./routes/user');
 var http = require('http');
 var path = require('path');
+var redis = require('redis');
 
 var chat = require('./routes/chat');
 var socketio = require('socket.io');
@@ -30,6 +31,31 @@ if ('development' == app.get('env')) {
 app.get('/', routes.index);
 app.get('/single_chat', chat.main);
 app.get('/users', user.list);
+
+var client = redis.createClient('6379', '10.120.100.42');
+client.on("error", function(err) {
+	console.log("Error " + err);
+});
+var msgList = {};
+var chatTranscript = new Object();
+//client.sadd("sadd testing", "first line");
+client.sadd("sadd testing", "third line");
+client.smembers("sadd testing", function(err,replies) {
+	replies.forEach(function(reply, i){
+		console.log("number " + i + ": " + reply);
+		msgList[i] = reply;
+		console.log(msgList[i]);
+	});
+	chatTranscript.plain = msgList;
+	chatTranscript.requester_screen_name = "sjin";
+	console.log(msgList);
+	console.log(chatTranscript);
+	client.set("room idd", JSON.stringify(chatTranscript));
+});
+console.log('dsfaasf');
+client.get("room idd", redis.print);
+//client.get("testing redis", redis.print);
+
 
 var server = app.listen(app.get('port'), function() {
 	console.log("Express server listening on port " + app.get('port'));
