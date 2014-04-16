@@ -3,6 +3,7 @@ var routes = require('./routes');
 var user = require('./routes/user');
 var http = require('http');
 var path = require('path');
+var redis = require('redis');
 
 var chat = require('./routes/chat');
 var socketio = require('socket.io');
@@ -30,6 +31,12 @@ if ('development' == app.get('env')) {
 app.get('/', routes.index);
 app.get('/single_chat', chat.main);
 app.get('/users', user.list);
+
+var red_cli = redis.createClient();
+red_cli.on("error", function(err) {
+	console.log("Error " + err); //redis error log
+});
+
 
 var server = app.listen(app.get('port'), function() {
 	console.log("Express server listening on port " + app.get('port'));
@@ -144,30 +151,20 @@ io.sockets.on('connection', function(socket) {
 	});
 
 	socket.on('message', function(msg) {
-		var srcUser;
 		if (msg.inferSrcUser) {
-			// Infer user name based on the socket id
-			srcUser = socketsOfClients[socket.id];
+			msg['source'] = socketsOfClients[socket.id]; //Infer user name based on the socket id
 		} else {
-			srcUser = msg.source;
+			msg['source'] = 'A'; //from pretty little liar, anonymous sender, implement later...
 		}
-
-		if (msg.target == "All") {
-			// broadcast
-			io.sockets.emit('message', {
-							"source": srcUser,
-							"message": msg.message,
-							"target": msg.target
+		
+		// chat within current room, lobby is also a room!
+		msg['target'] = msg.target.toLowerCase();
+		io.sockets.in(msg.target).emit('message', {
+									"source": msg.source,
+									"message": msg.message,
+									"target": msg.target
 							});
-		} else {
-			// chat within current room
-			var target = msg.target.toLowerCase();
-			io.sockets.in(target).emit('message', {
-										"source": srcUser,
-										"message": msg.message,
-										"target": target
-								});
-		}
+		logChat(red_cli, msg);
 	});
 
 	socket.on('current room list', function() {
@@ -245,4 +242,41 @@ function joinLobby(socket, userName) {
 	//broadcast lobby except sender
 	socket.broadcast.to('lobby').emit('lobbyBroadcast', userName);
 	socket.emit('initRoomList', io.sockets.manager.rooms);
+}
+
+function logChat (red_cli, msg) {
+	// console.log(red_cli.TIME);
+	// var chatTranscript = new Object();
+	// var msgList = {};
+
+	//construct pool_id for sadd
+	var sms_pool_id = '';	
+	var res =	msg.target.split('_');
+	if (res[1]) {
+		sms_pool_id = res[1] + '_' + res[0]; //regular room
+	}else{
+		sms_pool_id = res[0] + '_';	//if it's lobby
+	}
+
+	var sms =	msg.source + ' : ' + msg.message;
+
+	console.log(sms_pool_id);
+	console.log(sms);
+
+	red_cli.sadd(sms_pool_id, sms);
+	// red_cli.smembers(sms_pool_id, function(err,res) {
+	// 	res.forEach(function(reply, i){
+	// 		console.log("number " + i + ": " + reply);
+	// 		msgList[i] = reply;
+	// 		console.log(msgList[i]);
+	// 	});
+	// 	chatTranscript.plain = msgList;
+	// 	console.log(msgList);
+	// 	console.log(chatTranscript);
+	// 	red_cli.set("room idd", JSON.stringify(chatTranscript));
+	// });
+
+	red_cli.smembers(sms_pool_id, function (err, reply){
+		console.log(reply);
+	}); // for testing
 }

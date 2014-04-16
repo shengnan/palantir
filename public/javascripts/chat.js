@@ -119,8 +119,8 @@ function sendMessage(roomName) {
 	}
 	socket.emit('message',
 				{
-					"inferSrcUser": true,
-					"source": "A",
+					"inferSrcUser": true, //false to allow anonymous sender
+					"source":'', //source is detected on server side
 					"message": $('input#msg').val(),
 					"target": trgtRoom
 				});
@@ -187,7 +187,7 @@ function hideBackButtonForLobby() {
 	}
 }
 
-socket = io.connect("http://10.120.100.71:3000");
+socket = io.connect("http://localhost:3000");
 
 $(function() {
 
