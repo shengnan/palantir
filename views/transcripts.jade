@@ -1,0 +1,25 @@
+extends layout
+
+block content
+  h1=title
+
+  div
+    table
+      thead
+        tr: th
+            th Requester
+            th Created
+            th Message
+      tbody
+        each transcript, key in trans
+          each tran, inner_key in transcript
+            tr
+              td
+                a(href='http://10.120.100.71:3000/view_transcripts' + key) View
+              td
+                !{tran.requester}
+              td
+                !{tran.created}
+              td
+                !{tran.message}
+

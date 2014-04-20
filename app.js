@@ -30,17 +30,18 @@ if ('development' == app.get('env')) {
 
 app.get('/', routes.index);
 app.get('/single_chat', chat.main);
+app.get('/view_transcripts', chat.showTranscripts);
 app.get('/users', user.list);
 
-var client = redis.createClient('6379', '10.120.100.42');
-client.on("error", function(err) {
+var red_cli = redis.createClient('6379', '10.120.100.42');
+red_cli.on("error", function(err) {
 	console.log("Error " + err);
 });
-var msgList = {};
+/*var msgList = {};
 var chatTranscript = new Object();
-//client.sadd("sadd testing", "first line");
-client.sadd("sadd testing", "third line");
-client.smembers("sadd testing", function(err,replies) {
+//red_cli.sadd("sadd testing", "first line");
+red_cli.sadd("sadd testing", "third line");
+red_cli.smembers("sadd testing", function(err,replies) {
 	replies.forEach(function(reply, i){
 		console.log("number " + i + ": " + reply);
 		msgList[i] = reply;
@@ -50,12 +51,12 @@ client.smembers("sadd testing", function(err,replies) {
 	chatTranscript.requester_screen_name = "sjin";
 	console.log(msgList);
 	console.log(chatTranscript);
-	client.set("room idd", JSON.stringify(chatTranscript));
+	red_cli.set("room idd", JSON.stringify(chatTranscript));
 });
 console.log('dsfaasf');
-client.get("room idd", redis.print);
-//client.get("testing redis", redis.print);
-
+red_cli.get("room idd", redis.print);
+//red_cli.get("testing redis", redis.print);*/
+//red_cli.get('1397772566533_sjin', redis.print);
 
 var server = app.listen(app.get('port'), function() {
 	console.log("Express server listening on port " + app.get('port'));
@@ -134,10 +135,15 @@ io.sockets.on('connection', function(socket) {
 		newClientsList = getClientsListInRoom(socket.room);
 		socket.broadcast.to(roomName).emit('switchRoomBroadcast', user, 'joined', newClientsList);
 
-		//update all clients' roomList including sender
+		// update all clients' roomList including sender
 		io.sockets.emit('initRoomList', io.sockets.manager.rooms);
 
 		// console.log(io.sockets.manager.rooms);
+	});
+
+	socket.on('notify', function(rId, notification) {
+		var newClientsList = getClientsListInRoom(rId);
+		socket.broadcast.to(rId).emit('sendNotification', notification, newClientsList);
 	});
 
 	socket.on('joinRoom', function(joiner, rId) {
@@ -163,6 +169,14 @@ io.sockets.on('connection', function(socket) {
 
 		//io.sockets.emit('roomListUpdateBroadcast', socket.room, rId);
 		io.sockets.emit('initRoomList', io.sockets.manager.rooms);
+
+		// grab current messages that requester alreday input
+		var sms_pool_id = getSMSPoolId(socket.room);
+		red_cli.get(sms_pool_id, function(err, reply) {
+			if (reply != null) {
+				io.sockets.in(socket.room).emit('getCurrentMessages', reply.toString());
+			}
+		})
 	});
 
 	socket.on('joinLobby', function(joiner) {
@@ -170,29 +184,22 @@ io.sockets.on('connection', function(socket) {
 	});
 
 	socket.on('message', function(msg) {
-		var srcUser;
 		if (msg.inferSrcUser) {
 			// Infer user name based on the socket id
-			srcUser = socketsOfClients[socket.id];
+			msg['source'] = socketsOfClients[socket.id];
 		} else {
-			srcUser = msg.source;
+			msg['source'] = 'A'; //from pretty little liar, anonymous sender, implement later...
 		}
 
-		if (msg.target == "All") {
-			// broadcast
-			io.sockets.emit('message', {
-							"source": srcUser,
-							"message": msg.message,
-							"target": msg.target
+		// chat within current room
+		var target = msg.target.toLowerCase();
+		io.sockets.in(target).emit('message', {
+								"source": msg.source,
+								"message": msg.message,
+								"target": target
 							});
-		} else {
-			// chat within current room
-			var target = msg.target.toLowerCase();
-			io.sockets.in(target).emit('message', {
-										"source": srcUser,
-										"message": msg.message,
-										"target": target
-								});
+		if (target != 'lobby') {
+			logChat(red_cli, msg);
 		}
 	});
 
@@ -207,6 +214,18 @@ io.sockets.on('connection', function(socket) {
 		delete clients[uName];
 		socket.leave(curRoom);
 		closeRoom(socket, curRoom);
+
+		// saving the whole object chatTranscript
+		var chatTranscript = new Object();
+		var sms_pool_id = getSMSPoolId(curRoom);
+		red_cli.get(sms_pool_id, function (err, reply) {
+			chatTranscript.message = reply.toString();
+			chatTranscript.requester = uName;
+			var vals = curRoom.split('_');
+			chatTranscript.created = vals[0];
+			red_cli.set(curRoom, JSON.stringify(chatTranscript));
+			red_cli.zadd('chat_transcript', chatTranscript.created, curRoom);    // add all transcript keys to a sorted set based on the created time
+		});
 	});
 })
 
@@ -271,4 +290,21 @@ function joinLobby(socket, userName) {
 	//broadcast lobby except sender
 	socket.broadcast.to('lobby').emit('lobbyBroadcast', userName);
 	socket.emit('initRoomList', io.sockets.manager.rooms);
+}
+
+function logChat(red_cli, msg) {
+	//construct pool_id for sadd
+	var sms_pool_id = getSMSPoolId(msg.target);
+
+	var sms = msg.source + ': ' + msg.message + '<br>';
+	red_cli.append(sms_pool_id, sms);
+}
+
+function getSMSPoolId (curRoom) {
+	var sms_pool_id = '';
+	var res = curRoom.split('_');
+	if (res[1]) {
+		sms_pool_id = res[1] + '_' + res[0];    // regular room, looby transcript won't be saved
+	}
+	return sms_pool_id;
 }

@@ -62,7 +62,15 @@
 	text-decoration: none;
 }
 .user{
-	text-decoration: none;	
+	text-decoration: none;
 	cursor: default;
+}
+
+.even{
+	background: #CCC;
+}
+
+.odd{
+	background: #FFF;
 }
 

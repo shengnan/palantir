@@ -64,6 +64,8 @@ function appendNewRoom(rName, rId, numOfCls) {
 		var destRId = $(this).children('input').attr('socket');
 		changeRoomName(rName);
 		socket.emit('joinRoom', joiner, destRId);
+		var notification = $('input#userName').val() + " has entered the room.";
+		socket.emit('notify', rId, notification);
 
 	    e.stopImmediatePropagation()
 	});
@@ -104,7 +106,7 @@ function clearChatArea() {
 	$('#msgWindow').text('');
 }
 
-// set username, meanwhile enter the lobby 
+// set username, meanwhile enter the lobby
 function setUsername() {
 	myUserName = $('input#userName').val();
 	socket.emit('set username', myUserName);
@@ -120,7 +122,7 @@ function sendMessage(roomName) {
 	socket.emit('message',
 				{
 					"inferSrcUser": true,
-					"source": "A",
+					"source": "",
 					"message": $('input#msg').val(),
 					"target": trgtRoom
 				});
@@ -180,7 +182,7 @@ function disableAllForRequester(disable) {
 
 function hideBackButtonForLobby() {
 	var curRoom = $('#curRoom').text().toLowerCase();
-	if (curRoom == 'lobby') {
+	if (curRoom == 'lobby' || role == 'requester') {
 		$('#backToLobby').css('display', 'none');
 	} else {
 		$('#backToLobby').show();
@@ -189,12 +191,11 @@ function hideBackButtonForLobby() {
 
 socket = io.connect("http://10.120.100.71:3000");
 
+var requester_button_clicked = getQueryVariable("start_chat");
+var role = getQueryVariable("role");
+var username = getQueryVariable("username");
+
 $(function() {
-
-	var requester_button_clicked = getQueryVariable("start_chat");
-	var role = getQueryVariable("role");
-	var username = getQueryVariable("username");
-
 	if (role == 'requester') {
 		enableMsgInput(true);
 		disableAllForRequester(true);
@@ -208,6 +209,7 @@ $(function() {
 		socket.on('message', function(msg) {
 			appendNewMessage(msg);
 		});
+
 		$('input#msg').keypress(function(e) {
 			if (e.keyCode == 13 && $('input#msg').val() != '') {
 				sendMessage(roomName);
@@ -228,25 +230,31 @@ $(function() {
 			socket.emit('exit', curRoom);
 			
 			// close current window
+
+		});
+
+		socket.on('sendNotification', function(notification, clsList) {
+			$('#msgWindow').append('<strong>' + notification + '</strong><br>');
 		});
 
 	} else {
 		enableMsgInput(false);
 		$('#close').css('display', 'none');
+		$('#backToLobby').css('display', 'none');
 
 		socket.on('lobbyBroadcast', function(uName) {
 			var msg = 'Attention everyone, '+uName+' is onboard!';
 			setFeedback(msg);
 		});
 
-		socket.on('initRoomList', function(rsList) {
+		socket.on('initRoomList', function(rsList, message) {
 			var rId;
 			$('#roomWindow').text('');
 			for (var room in rsList) {
 				if (room != '' && room != null) {
 					var roomName = room.substring(1);
 					rId = roomName;
-					appendNewRoom(roomName, rId, rsList[room].length);
+					appendNewRoom(roomName, rId, rsList[room].length, message);
 				}
 			}
 		});
@@ -255,7 +263,7 @@ $(function() {
 			var msg = 'you have entered room: '+rName+' !';
 			setFeedback(msg);
 			reloadClients(clsList);
-			clearChatArea();
+			//clearChatArea();
 			enableMsgInput(true);
 			enableUsernameField(false);
 		});
@@ -372,11 +380,10 @@ $(function() {
 			});
 		});
 
-		/*$('#close').click(function(e) {
-			var curRoom = $('#curRoom').text().toLowerCase();
-			socket.emit('exit', curRoom);
+			socket.on('getCurrentMessages', function(reply) {
+				var html = html = "<span class='allMsg'>" + reply + "</span><br/>";
+				$('#msgWindow').append(html);
+			});
 
-			// close current window
-		});*/
 	}
 });
