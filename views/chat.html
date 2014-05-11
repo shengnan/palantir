@@ -1,0 +1,110 @@
+<% include layout.html %>
+<h1 id="curRoom"></h1>
+<div>
+	<input type="submit" value="View Transcripts" name="viewTranscripts" id="viewTranscripts" style="width: 125px; height: 25px; background-color: white;" onclick="http://10.120.100.71:3000/view_transcripts" >
+	<input type="submit" value="Back To Lobby" name="backToLobby" id="backToLobby">
+	<div id="close" class="close">Close</div>
+</div>
+<div ng-controller="testingCtrl">
+	<div>
+		<label for="userName" id="userNameLabel">User name: (Hit Enter)</label>
+		<input type="text" id="userName" name="userName" size="30" ng-model="userName" ng-change="doSomething()">
+		<span class="feedback" id="feedback"></span>
+		<p>{{userName}}</p>
+		<p>{{2+2}}</p>
+	</div>
+	<div id="roomWindow" class="roomShadow"></div>
+	<!--<div id="msgWindow" class="shadow"></div>-->
+	<div class="container">
+		<div class="row">
+			<div class="col-md-5">
+				<div class="panel panel-primary">
+					<div class="panel-heading" id="accordion">
+						<span class="glyphicon glyphicon-comment"></span> Chat
+						<div class="btn-group pull-right">
+							<a type="button" class="btn btn-default btn-xs" data-toggle="collapse" data-parent="#accordion" href="#collapseOne">
+								<span class="glyphicon glyphicon-chevron-down"></span>
+							</a>
+						</div>
+					</div>
+					<div class="panel-collapse collapse" id="collapseOne">
+					<div id="msgWindow">
+						<ul class="chat">
+							<li class="left clearfix"><span class="chat-img pull-left">
+								<img src="http://placehold.it/50/55C1E7/fff&text=U" alt="User Avatar" class="img-circle" />
+							</span>
+								<div class="chat-body clearfix">
+									<div class="header">
+										<strong class="primary-font">Jack Sparrow</strong> <small class="pull-right text-muted">
+											<span class="glyphicon glyphicon-time"></span>12 mins ago</small>
+									</div>
+									<p>
+										Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur bibendum ornardolor, quis ullamcorper ligula sodales.
+									</p>
+								</div>
+							</li>
+							<li class="right clearfix"><span class="chat-img pull-right">
+								<img src="http://placehold.it/50/FA6F57/fff&text=ME" alt="User Avatar" class="img-circle" />
+							</span>
+								<div class="chat-body clearfix">
+									<div class="header">
+										<small class=" text-muted"><span class="glyphicon glyphicon-time"></span>13 mins ago</small>
+										<strong class="pull-right primary-font">Bhaumik Patel</strong>
+									</div>
+									<p>
+										Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur bibendum ornardolor, quis ullamcorper ligula sodales.
+									</p>
+								</div>
+							</li>
+							<li class="left clearfix"><span class="chat-img pull-left">
+								<img src="http://placehold.it/50/55C1E7/fff&text=U" alt="User Avatar" class="img-circle" />
+							</span>
+								<div class="chat-body clearfix">
+									<div class="header">
+										<strong class="primary-font">Jack Sparrow</strong> <small class="pull-right text-muted">
+											<span class="glyphicon glyphicon-time"></span>12 mins ago</small>
+									</div>
+									<p>
+										Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur bibendum ornardolor, quis ullamcorper ligula sodales.
+									</p>
+								</div>
+							</li>
+							<li class="left clearfix"><span class="chat-img pull-left">
+								<img src="http://placehold.it/50/55C1E7/fff&text=U" alt="User Avatar" class="img-circle" />
+							</span>
+								<div class="chat-body clearfix">
+									<div class="header">
+										<strong class="primary-font">Jack Sparrow</strong> <small class="pull-right text-muted">
+											<span class="glyphicon glyphicon-time"></span>12 mins ago</small>
+									</div>
+									<p>
+										Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur bibendum ornardolor, quis ullamcorper ligula sodales.
+									</p>
+								</div>
+							</li>
+						</ul>
+					</div>
+					<div id="messageControl">
+						<div class="input-group">
+							<input id="msg" type="text" disable="true" class="form-control input-sm" placeholder="Type your message here..." />
+							<span class="input-group-btn">
+								<button class="btn btn-warning btn-sm" id="send">Send</button>
+							</span>
+						</div>
+					</div>
+				</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+
+	<!--<div id="messageControl">
+		<table>
+			<tr>
+				<td><input type="text" id="msg" style="width: 600px" disable="true"></td>
+				<td><input type="submit" id="send" value="Send Message"></td>
+			</tr>
+		</table>
+	</div>-->
+</div>

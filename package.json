@@ -8,6 +8,7 @@
   "dependencies": {
     "express": "3.5.0",
     "jade": "*",
-	'redis': "2.4.10"
+	"redis": "2.4.10",
+	"moment": "2.6.0"
   }
 }
